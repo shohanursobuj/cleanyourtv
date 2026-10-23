@@ -605,7 +605,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnSettings.setOnClickListener(v -> {
             if (launcherSettingsButton) startActivityForResult(
                     new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
-            else open(systemIntent(Settings.ACTION_SETTINGS));
+            else openSettings();
         });
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
@@ -2614,6 +2614,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /** The Settings pill: with settings_dashboard, the stock Google TV quick settings panel through HomeKeyService,
+     *  else, or while that service is off, the TV's Settings. */
+    private void openSettings() {
+        if (getResources().getBoolean(R.bool.settings_dashboard) && HomeKeyService.openNotificationPanel()) return;
+        open(systemIntent(Settings.ACTION_SETTINGS));
+    }
+
     private void open(Intent i) {
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
@@ -2941,7 +2948,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     () -> startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
         } else {
             addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.settings), -1,
-                    () -> open(systemIntent(Settings.ACTION_SETTINGS)));
+                    this::openSettings);
         }
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (220 * density), Math.min(panel.getMeasuredWidth(), (int) (360 * density))));

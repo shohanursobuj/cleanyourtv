@@ -20,6 +20,7 @@ import android.view.ViewConfiguration;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.Toast;
 
+import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -59,9 +60,20 @@ public class HomeKeyService extends AccessibilityService {
     /** Stops key filtering while a game controller is connected; null unless gamepad_passthrough and key_filter, or before the unlock. */
     private GamepadPassthrough gamepads;
 
+    /** The bound service, for settings_dashboard; null while it is off. */
+    private static WeakReference<HomeKeyService> running = new WeakReference<>(null);
+
+    /** settings_dashboard: the stock Google TV quick settings panel. Its activity needs STATUS_BAR_SERVICE, but the
+     *  system's notification action opens it. False when this service is not running. */
+    static boolean openNotificationPanel() {
+        HomeKeyService service = running.get();
+        return service != null && service.performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS);
+    }
+
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        running = new WeakReference<>(this);
         settingsScancodes = getResources().getIntArray(R.array.settings_key_scancodes);
         // The service is directBootAware: Android 11 skips a service that is not while the user is still
         // locked at boot, writes accessibility_enabled=0 and, on TCL G03 firmware, never binds it after the
@@ -94,6 +106,7 @@ public class HomeKeyService extends AccessibilityService {
 
     @Override
     public void onDestroy() {
+        running.clear();
         stopWaitingForUnlock();
         if (gamepads != null) gamepads.stop();
         super.onDestroy();
